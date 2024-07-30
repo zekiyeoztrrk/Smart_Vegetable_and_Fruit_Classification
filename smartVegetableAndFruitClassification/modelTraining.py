@@ -10,12 +10,12 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.metrics import classification_report, confusion_matrix, f1_score, precision_score, recall_score
 import seaborn as sns
 
-# Veri setinin yolu
+# Path of the dataset
 current_dir = os.path.dirname(os.path.realpath(__file__))
 train_dir = os.path.join(current_dir, 'data', 'train')
 test_dir = os.path.join(current_dir, 'data', 'test')
 
-# Veri Ön İşleme ve Jeneratör Kullanımı
+# Data Preprocessing and Generator Usage
 batch_size = 32
 img_height = 128
 img_width = 128
@@ -59,7 +59,7 @@ test_generator = test_datagen.flow_from_directory(
 
 num_classes = len(train_generator.class_indices)
 
-# Model Oluşturma Fonksiyonu
+# Model Creation Function
 def create_model(base_model, num_classes):
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
@@ -75,7 +75,7 @@ def train_model(model, train_generator, validation_generator, model_name, epochs
     history = model.fit(train_generator, validation_data=validation_generator, epochs=epochs, callbacks=[checkpoint, early_stopping])
     return model, history
 
-# Modelleri Eğitme ve Değerlendirme
+# Training and Evaluating Models
 models = {
     'MobileNetV2': MobileNetV2(weights='imagenet', include_top=False, input_shape=(img_height, img_width, 3)),
     'EfficientNetB0': EfficientNetB0(weights='imagenet', include_top=False, input_shape=(img_height, img_width, 3)),
@@ -91,7 +91,7 @@ for model_name, base_model in models.items():
     model, history = train_model(model, train_generator, validation_generator, model_name, epochs=20, learning_rate=1e-4)
     histories[model_name] = history
 
-# En İyi Modelleri Yükleme ve Değerlendirme
+# Upload and Evaluate the Best Models
 def evaluate_model(model, test_generator, class_labels):
     loss, accuracy = model.evaluate(test_generator)
     y_pred = np.argmax(model.predict(test_generator), axis=1)
@@ -122,7 +122,7 @@ for model_name, base_model in models.items():
     
     evaluate_model(model, test_generator, list(test_generator.class_indices.keys()))
 
-# Eğitim Sonuçlarını Görselleştirme
+# Visualizing Training Results
 for model_name, history in histories.items():
     plt.figure(figsize=(12, 4))
     
@@ -144,7 +144,7 @@ for model_name, history in histories.items():
     
     plt.show()
 
-# En iyi modeli belirleme
+# Determining the best model
 best_model_name = max(results, key=lambda k: results[k]['accuracy'])
 best_model_accuracy = results[best_model_name]['accuracy']
 print(f'Best model: {best_model_name} with accuracy: {best_model_accuracy}')

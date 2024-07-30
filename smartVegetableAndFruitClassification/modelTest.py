@@ -7,11 +7,11 @@ from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
-# Veri setinin yolu
+# Path of the dataset
 current_dir = os.path.dirname(os.path.realpath(__file__))
 weights_dir = os.path.join(current_dir, 'weights')
 
-# Modeli Oluşturma ve Yükleme
+# Creating and Loading the Model
 img_height = 128
 img_width = 128
 
@@ -24,7 +24,7 @@ def create_resnet50_model(num_classes):
     model = Model(inputs=base_model.input, outputs=predictions)
     return model
 
-# ResNet50 Modelini Yükleme
+# Loading the ResNet50 Model
 class_labels = [
     'berry-black', 'berry-blue', 'berry-cherry', 'berry-cherry-ground', 'berry-grape',
     'berry-kiwi', 'berry-rasp', 'berry-straw', 'fruit-apple', 'fruit-banana',
@@ -43,7 +43,7 @@ best_model_path = os.path.join(weights_dir, 'ResNet50_best_weights.h5')
 resnet50_model.load_weights(best_model_path)
 resnet50_model.compile(optimizer=Adam(), loss='categorical_crossentropy', metrics=['accuracy'])
 
-# Kameradan Görüntü Alma ve İşleme
+# Capturing and Processing Images from the Camera
 def predict_and_count_objects_from_camera(model):
     cap = cv2.VideoCapture(0)
     
@@ -57,17 +57,17 @@ def predict_and_count_objects_from_camera(model):
             print("Error: Could not read frame from camera.")
             break
         
-        # Görüntüyü ön işle
+        # Preprocess the image
         img = cv2.resize(frame, (img_height, img_width))
         img_array = img_to_array(img)
         img_array = np.expand_dims(img_array, axis=0) / 255.0
         
-        # Tahmin yap
+        # Make a guess
         predictions = model.predict(img_array)
         predicted_class = np.argmax(predictions, axis=1)
         predicted_label = class_labels[predicted_class[0]]
         
-        # Görüntüyü gri tonlamaya çevir ve nesneleri tespit et
+        # Convert image to grayscale and detect objects
         gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blurred_image = cv2.GaussianBlur(gray_image, (5, 5), 0)
         _, threshold_image = cv2.threshold(blurred_image, 60, 255, cv2.THRESH_BINARY_INV)
@@ -75,22 +75,22 @@ def predict_and_count_objects_from_camera(model):
         contours, _ = cv2.findContours(threshold_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         object_count = len(contours)
         
-        # Görüntü üzerinde tahmin ve sayıları yazdır
+        # Predict and print numbers on the image
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
         
         cv2.putText(frame, f'{predicted_label}: {object_count}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
         
-        # OpenCV ile göster
+        # Show with OpenCV
         cv2.imshow('Object Detection', frame)
         
-        # 'q' tuşuna basıldığında döngüden çık
+        # Exit loop when 'q' key is pressed
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     
     cap.release()
     cv2.destroyAllWindows()
 
-# Kameradan görüntü alarak tahmin yapma ve nesne sayma
+# Estimating and counting objects by taking images from the camera
 predict_and_count_objects_from_camera(resnet50_model)
